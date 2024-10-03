@@ -142,3 +142,59 @@ docker stop <container-id>
    ```
 
 注意：请确保您的 Kubernetes 集群有足够的资源来运行这些部署。根据您的具体环境，可能需要调整 deployment.yaml 和 hpa.yaml 中的资源请求和限制。
+
+### 5. 部署到 Google Kubernetes Engine (GKE)
+
+要将应用部署到 Google Kubernetes Engine (GKE)，请按照以下步骤操作：
+
+1. 确保您已经安装并配置了 Google Cloud SDK，并且可以使用 `gcloud` 命令。
+
+2. 确保您已经创建了一个 GKE 集群。如果没有，可以使用以下命令创建：
+   ```bash
+   gcloud container clusters create my-gke --zone asia-east1 --num-nodes=3
+   ```
+
+3. 配置 kubectl 以使用您的 GKE 集群：
+   ```bash
+   gcloud container clusters get-credentials my-gke --zone asia-east1
+   ```
+
+4. 使用 Cloud Build 构建和部署应用。根据您的需求，可以选择以下两种方式之一：
+
+   a. 构建新镜像并部署：
+   ```bash
+   gcloud builds submit --config cloudbuild.yaml --substitutions=_BUILD_IMAGE=true,_IMAGE_TAG=v1.0.0
+   ```
+
+   b. 仅更新部署（使用现有镜像）：
+   ```bash
+   gcloud builds submit --config cloudbuild.yaml --substitutions=_BUILD_IMAGE=false,_IMAGE_TAG=v1.0.0
+   ```
+
+   注意：请根据您的实际版本号更改 `v1.0.0`。
+
+5. 等待部署完成。您可以使用以下命令检查部署状态：
+   ```bash
+   kubectl get deployments
+   kubectl get pods
+   kubectl get services
+   ```
+
+6. 获取服务的外部 IP 地址：
+   ```bash
+   kubectl get services zenapi-gke-service
+   ```
+
+7. 使用获取到的外部 IP 地址访问您的应用。
+
+8. 如果需要更新应用，只需要重复步骤 4，根据需要选择是否构建新镜像。
+
+9. 清理资源（当您想要删除部署时）：
+   ```bash
+   kubectl delete -f gke-deployment.yaml
+   ```
+
+注意：
+- 确保您的 GCP 项目有足够的配额来运行 GKE 集群和部署您的应用。
+- 记得在不使用时删除集群以避免不必要的费用。
+- 根据您的安全要求，考虑配置网络策略和 RBAC。
