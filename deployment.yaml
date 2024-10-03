@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zenapi-deployment
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: zenapi
+  template:
+    metadata:
+      labels:
+        app: zenapi
+    spec:
+      containers:
+      - name: zenapi
+        image: liu149/zenapi-app:latest
+        imagePullPolicy: Always
+        ports:
+        - containerPort: 80
+        resources:
+          requests:
+            cpu: 100m
+          limits:
+            cpu: 500m
