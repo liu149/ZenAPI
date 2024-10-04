@@ -14,7 +14,7 @@ spec:
     spec:
       containers:
       - name: zenapi
-        image: gcr.io/PROJECT_ID/zenapi-app:TAG
+        image: gcr.io/PROJECT_ID/zenapi-app:TAG  # This will be replaced by the sed command
         ports:
         - containerPort: 80
         resources:

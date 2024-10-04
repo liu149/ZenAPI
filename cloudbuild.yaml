@@ -1,5 +1,5 @@
 steps:
-  # Conditional build and push step
+  # Conditional build step
   - name: 'gcr.io/cloud-builders/docker'
     entrypoint: 'bash'
     args:
@@ -34,9 +34,9 @@ steps:
     - 'CLOUDSDK_CORE_PROJECT=$PROJECT_ID'
     id: 'deploy'
 
-# Images to be pushed to Container Registry (only if _BUILD_IMAGE is 'true')
-images:
-  - 'gcr.io/$PROJECT_ID/zenapi-app:${_IMAGE_TAG}'
+# Images to be pushed (only if _BUILD_IMAGE is 'true')
+# images:
+#   - 'gcr.io/$PROJECT_ID/zenapi-app:${_IMAGE_TAG}'
 
 # Substitutions
 substitutions:
