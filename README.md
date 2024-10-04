@@ -1,40 +1,40 @@
-# FastAPI 学习项目
+# FastAPI GCP 学习项目
 
-这个项目是为了学习FastAPI而创建的。在这里，我将记录我的学习过程、重要概念和实践经验。
+这个项目的主要目的是通过使用 FastAPI 来熟悉 Google Cloud Platform (GCP)。在这里，我将记录学习过程、重要概念和实践经验。
+
+## 项目概述
+
+本项目使用 FastAPI 构建一个简单的 Web 应用，并将其部署到 Google Kubernetes Engine (GKE)。通过这个过程，我们将学习如何：
+
+1. 创建基本的 FastAPI 应用
+2. 使用 Docker 容器化应用
+3. 使用 Google Cloud Build 自动构建和部署
+4. 在 GKE 上运行和管理应用
+5. 配置 Cloud DNS 进行域名管理
 
 ## 学习内容
 
-### 1. 创建基本的FastAPI应用
+### 1. 创建基本的 FastAPI 应用
 
-- 使用FastAPI创建了一个简单的Web应用
-- 学习了如何定义一个基本的路由
+- 使用 FastAPI 创建了一个简单的 Web 应用
+- 学习了如何定义基本路由和处理请求
 
-#### 安装必要的包
+### 2. 本地开发和测试
 
-首先，我们需要安装FastAPI和一个ASGI服务器（如Uvicorn）。在命令行中运行以下命令：
+在本地开发和测试 FastAPI 应用：
 
-### 2. 本地启动服务
-
-要在本地启动FastAPI服务，请按照以下步骤操作：
-
-1. 确保您已经安装了所有必要的依赖。如果还没有安装，请运行：
+1. 安装依赖：
    ```bash
    pip install -r requirements.txt
    ```
 
-2. 在项目根目录下，运行以下命令启动服务：
+2. 运行应用：
    ```bash
    uvicorn main:app --reload
    ```
-   这将启动开发服务器，并在文件更改时自动重新加载。
 
-3. 打开浏览器并访问 http://127.0.0.1:8000 。您应该能看到FastAPI的欢迎页面。
-
-4. 要访问API文档，请访问 http://127.0.0.1:8000/docs 。
-
-5. 要停止服务器，请在命令行中按 Ctrl+C。
-
-注意：在生产环境中，您应该使用更强大的ASGI服务器，如Gunicorn与Uvicorn workers。
+3. 访问 http://127.0.0.1:8000 查看应用
+4. 访问 http://127.0.0.1:8000/docs 查看 API 文档
 
 ### 3. Docker 操作
 
@@ -198,3 +198,37 @@ docker stop <container-id>
 - 确保您的 GCP 项目有足够的配额来运行 GKE 集群和部署您的应用。
 - 记得在不使用时删除集群以避免不必要的费用。
 - 根据您的安全要求，考虑配置网络策略和 RBAC。
+
+### 6. 配置域名和 Cloud DNS
+
+为了使用自定义域名访问我们的应用，我们需要配置 Cloud DNS：
+
+1. 在 Google Cloud Console 中，进入 Cloud DNS 服务。
+
+2. 创建一个新的 DNS 区域，或使用现有的区域。
+
+3. 添加一个新的 DNS 记录：
+   - 记录类型：A
+   - 名称：您想要使用的子域名（例如：api）
+   - IPv4 地址：您的 GKE 服务的外部 IP 地址
+
+4. 在您的域名注册商处，将域名的 NS（名称服务器）记录更新为 Google Cloud DNS 提供的名称服务器。
+
+5. 等待 DNS 传播（可能需要几分钟到几小时）。
+
+现在，您可以通过您配置的域名（例如：http://api.yourdomain.com）来访问您的 FastAPI 应用。
+
+注意：
+- 确保您的域名已经注册并且您有权限管理它。
+- DNS 更改可能需要一些时间来全球传播，请耐心等待。
+- 考虑配置 HTTPS 以增强安全性。您可以使用 Google-managed SSL 证书或自己的 SSL 证书。
+
+### 下一步计划
+
+
+- 实现 CI/CD 流程
+- 配置 HTTPS
+- 探索 GCP 的监控和日志功能
+- 研究 GCP 的扩展性和高可用性特性
+
+通过这个项目，我们不仅学习了 FastAPI 的使用，更重要的是深入了解了 GCP 的各种服务和最佳实践，包括容器化、Kubernetes 部署、自动构建和部署，以及域名管理。
