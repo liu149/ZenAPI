@@ -204,7 +204,12 @@ docker stop <container-id>
 
 为了自动管理 DNS 记录，我们使用了 External DNS。以下是详细的配置步骤：
 
-#### a. External DNS 简介
+1. 创建 Google Cloud Service Account：
+   - 在 Google Cloud Console 中，导航到 "IAM & Admin" > "Service Accounts"
+   - 点击 "Create Service Account"
+   - 输入服务账号名称（例如：external-dns-sa）
+   - 为服务账号分配以下角色：
+     - DNS Administrator
 
 External DNS 通过监听 Kubernetes API 服务器来发现新的服务和 ingress 资源，然后根据这些资源的配置自动在 DNS 提供商（如 Google Cloud DNS）中创建相应的 DNS 记录。这大大简化了在 Kubernetes 环境中管理 DNS 记录的过程。
 
