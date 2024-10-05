@@ -11,6 +11,7 @@
 3. 使用 Google Cloud Build 自动构建和部署
 4. 在 GKE 上运行和管理应用
 5. 配置 Cloud DNS 进行域名管理
+6. 使用 External DNS 自动管理 DNS 记录
 
 ## 学习内容
 
@@ -199,36 +200,80 @@ docker stop <container-id>
 - 记得在不使用时删除集群以避免不必要的费用。
 - 根据您的安全要求，考虑配置网络策略和 RBAC。
 
-### 6. 配置域名和 Cloud DNS
+### 6. External DNS 配置
 
-为了使用自定义域名访问我们的应用，我们需要配置 Cloud DNS：
+为了自动管理 DNS 记录，我们使用了 External DNS。以下是详细的配置步骤：
 
-1. 在 Google Cloud Console 中，进入 Cloud DNS 服务。
+#### a. External DNS 简介
 
-2. 创建一个新的 DNS 区域，或使用现有的区域。
+External DNS 通过监听 Kubernetes API 服务器来发现新的服务和 ingress 资源，然后根据这些资源的配置自动在 DNS 提供商（如 Google Cloud DNS）中创建相应的 DNS 记录。这大大简化了在 Kubernetes 环境中管理 DNS 记录的过程。
 
-3. 添加一个新的 DNS 记录：
-   - 记录类型：A
-   - 名称：您想要使用的子域名（例如：api）
-   - IPv4 地址：您的 GKE 服务的外部 IP 地址
+#### b. 创建 IAM 服务账号并分配权限
 
-4. 在您的域名注册商处，将域名的 NS（名称服务器）记录更新为 Google Cloud DNS 提供的名称服务器。
+1. 创建 IAM 服务账号：
+   ```bash
+   gcloud iam service-accounts create external-dns --display-name "External DNS"
+   ```
 
-5. 等待 DNS 传播（可能需要几分钟到几小时）。
+2. 为服务账号分配 DNS 管理员角色：
+   ```bash
+   gcloud projects add-iam-policy-binding YOUR_PROJECT_ID \
+     --member serviceAccount:external-dns@YOUR_PROJECT_ID.iam.gserviceaccount.com \
+     --role roles/dns.admin
+   ```
 
-现在，您可以通过您配置的域名（例如：http://api.yourdomain.com）来访问您的 FastAPI 应用。
+#### c. 开启 GKE 集群的 Workload Identity
 
-注意：
-- 确保您的域名已经注册并且您有权限管理它。
-- DNS 更改可能需要一些时间来全球传播，请耐心等待。
-- 考虑配置 HTTPS 以增强安全性。您可以使用 Google-managed SSL 证书或自己的 SSL 证书。
+1. 更新现有集群以启用 Workload Identity：
+   ```bash
+   gcloud container clusters update YOUR_CLUSTER_NAME \
+     --zone YOUR_CLUSTER_ZONE \
+     --workload-pool=YOUR_PROJECT_ID.svc.id.goog
+   ```
 
-### 下一步计划
+2. 配置 IAM 服务账号以允许 Kubernetes 服务账号使用它：
+   ```bash
+   gcloud iam service-accounts add-iam-policy-binding \
+     --role roles/iam.workloadIdentityUser \
+     --member "serviceAccount:YOUR_PROJECT_ID.svc.id.goog[YOUR_K8S_NAMESPACE/external-dns]" \
+     external-dns@YOUR_PROJECT_ID.iam.gserviceaccount.com
+   ```
 
+#### d. 配置 DNS 和其他准备工作
 
-- 实现 CI/CD 流程
-- 配置 HTTPS
-- 探索 GCP 的监控和日志功能
-- 研究 GCP 的扩展性和高可用性特性
+1. 确保在 GCP 控制台中启用了 Cloud DNS API。
 
-通过这个项目，我们不仅学习了 FastAPI 的使用，更重要的是深入了解了 GCP 的各种服务和最佳实践，包括容器化、Kubernetes 部署、自动构建和部署，以及域名管理。
+2. 手动创建 DNS zone（如果还没有）：
+   ```bash
+   gcloud dns managed-zones create YOUR_ZONE_NAME --dns-name YOUR_DOMAIN --description "Managed by External DNS"
+   ```
+
+#### e. 部署 External DNS
+
+1. 应用 external-dns-sa.yaml 文件来创建必要的 Kubernetes 资源：
+   ```bash
+   kubectl apply -f external-dns-sa.yaml
+   ```
+
+2. 检查 External DNS 的部署状态：
+   ```bash
+   kubectl get pods -l app=external-dns
+   ```
+
+3. 查看 External DNS 的日志以确保它正在正常工作：
+   ```bash
+   kubectl logs -f $(kubectl get pods -l app=external-dns -o name)
+   ```
+
+#### f. 使用 External DNS
+
+在您的服务或 Ingress 资源中，添加以下注解来让 External DNS 自动创建 DNS 记录：
+
+```yaml
+annotations:
+  external-dns.alpha.kubernetes.io/hostname: your-service.your-domain.com
+```
+
+注意：确保将上述配置中的占位符（如 YOUR_PROJECT_ID、YOUR_CLUSTER_NAME、YOUR_CLUSTER_ZONE、YOUR_ZONE_NAME、YOUR_DOMAIN）替换为您的实际值。
+
+这个配置使用 Workload Identity 来安全地授权 External DNS 访问 Google Cloud DNS，无需使用服务账号密钥文件。通过这种方式，我们提高了安全性，并简化了凭证管理。
