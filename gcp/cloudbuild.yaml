@@ -1,22 +1,19 @@
 steps:
-  # Conditional build step
+  # Build the Docker image
   - name: 'gcr.io/cloud-builders/docker'
-    entrypoint: 'bash'
-    args:
-    - '-c'
-    - |
-      if [ "${_BUILD_IMAGE}" = "true" ]; then
-        docker build -t gcr.io/$PROJECT_ID/zenapi-app:${_IMAGE_TAG} .
-        docker push gcr.io/$PROJECT_ID/zenapi-app:${_IMAGE_TAG}
-      else
-        echo "Checking if image exists..."
-        if ! docker pull gcr.io/$PROJECT_ID/zenapi-app:${_IMAGE_TAG}; then
-          echo "Error: Image gcr.io/$PROJECT_ID/zenapi-app:${_IMAGE_TAG} does not exist"
-          exit 1
-        fi
-        echo "Image exists, proceeding with deployment"
-      fi
-    id: 'build-and-push'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/zenapi-app:${_VERSION}', '.']
+    id: 'build'
+
+  # Push the image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/zenapi-app:${_VERSION}']
+    id: 'push'
+
+  # Run tests
+  # - name: 'gcr.io/$PROJECT_ID/zenapi-app:${_VERSION}'
+  #   entrypoint: 'python'
+  #   args: ['-m', 'pytest', 'tests/']
+  #   id: 'test'
 
   # Update the deployment configuration
   - name: 'gcr.io/cloud-builders/gcloud'
@@ -24,25 +21,42 @@ steps:
     args:
     - '-c'
     - |
-      sed -i "s|gcr.io/PROJECT_ID/zenapi-app:TAG|gcr.io/$PROJECT_ID/zenapi-app:${_IMAGE_TAG}|" gke-deployment.yaml
+      sed -i "s|gcr.io/PROJECT_ID/zenapi-app:TAG|gcr.io/$PROJECT_ID/zenapi-app:${_VERSION}|" gcp/gke-deployment.yaml
     id: 'update-config'
+
+  # Deploy External DNS ServiceAccount and RBAC
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', 'gcp/external-dns-sa.yaml']
+    env:
+    - 'CLOUDSDK_COMPUTE_ZONE=${_CLOUDSDK_COMPUTE_ZONE}'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLOUDSDK_CONTAINER_CLUSTER}'
+    id: 'deploy-external-dns-sa'
+
+  # Deploy External DNS
+  - name: 'gcr.io/cloud-builders/kubectl'
+    args: ['apply', '-f', 'gcp/external-dns-deployment.yaml']
+    env:
+    - 'CLOUDSDK_COMPUTE_ZONE=${_CLOUDSDK_COMPUTE_ZONE}'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLOUDSDK_CONTAINER_CLUSTER}'
+    id: 'deploy-external-dns'
 
   # Deploy to GKE
   - name: 'gcr.io/cloud-builders/kubectl'
-    args:
-    - 'apply'
-    - '-f'
-    - 'gke-deployment.yaml'
+    args: ['apply', '-f', 'gcp/gke-deployment.yaml']
     env:
-    - 'CLOUDSDK_COMPUTE_ZONE=asia-east1'
-    - 'CLOUDSDK_CONTAINER_CLUSTER=my-gke'
-    - 'CLOUDSDK_CORE_PROJECT=$PROJECT_ID'
-    id: 'deploy'
+    - 'CLOUDSDK_COMPUTE_ZONE=${_CLOUDSDK_COMPUTE_ZONE}'
+    - 'CLOUDSDK_CONTAINER_CLUSTER=${_CLOUDSDK_CONTAINER_CLUSTER}'
+    id: 'deploy-gke'
+
+# Images to push
+images:
+  - 'gcr.io/$PROJECT_ID/zenapi-app:${_VERSION}'
 
 # Substitutions
 substitutions:
-  _IMAGE_TAG: 'latest'  # Default value, can be overridden
-  _BUILD_IMAGE: 'true'  # Default to building image, can be overridden
+  _CLOUDSDK_COMPUTE_ZONE: 'asia-east1'  # Default zone
+  _CLOUDSDK_CONTAINER_CLUSTER: 'my-gke'  # Default cluster name
+  _VERSION: 'latest'  # Default version tag
 
 # Optionally, you can add a timeout
 timeout: '1800s'

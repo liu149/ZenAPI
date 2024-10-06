@@ -9,7 +9,7 @@ TAG="latest"
 cd "$(dirname "$0")/.."
 
 # 构建 Docker 镜像
-docker build -t $DOCKER_USERNAME/$IMAGE_NAME:$TAG -f local/Dockerfile .
+docker build -t $DOCKER_USERNAME/$IMAGE_NAME:$TAG -f Dockerfile .
 
 # 推送镜像到 Docker Hub
 docker push $DOCKER_USERNAME/$IMAGE_NAME:$TAG
