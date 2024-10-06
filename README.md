@@ -40,28 +40,23 @@
 ### 3. Docker 操作
 
 #### 构建 Docker 镜像
-
-要构建 Docker 镜像，请在项目根目录下运行以下命令：
-
-```bash
-docker build -t your-dockerhub-username/zenapi-app:latest .
-```
-
-请将 `your-dockerhub-username` 替换为您的 Docker Hub 用户名。
-
-#### 推送镜像到 Docker Hub
-
 首先，确保您已经登录到 Docker Hub：
 
 ```bash
 docker login
 ```
 
-然后，推送镜像：
-
-```bash
-docker push your-dockerhub-username/zenapi-app:latest
+要构建 Docker 镜像并推送到 Docker Hub，请在项目根目录下运行以下命令：
+windows环
+```powershell
+powershell -ExecutionPolicy Bypass -File .\local\build.ps1
 ```
+linux环境
+```bash
+./local/build.sh
+```
+
+
 
 #### 在 Docker 容器中运行应用
 
@@ -87,36 +82,27 @@ docker ps
 docker stop <container-id>
 ```
 
-### 4. 部署到 Kubernetes
+### 4. 部署到本地 Kubernetes 集群
 
-要将应用部署到 Kubernetes 集群，请按照以下步骤操作：
+要将应用部署到本地 Kubernetes 集群，请按照以下步骤操作：
 
-1. 确保您已经安装并配置了 kubectl，并且可以连接到您的 Kubernetes 集群。
+1. 确保您已经安装并配置了 kubectl，并且可以连接到您的本地 Kubernetes 集群（如 Minikube 或 Docker Desktop Kubernetes）。
 
-2. 应用 Kubernetes 配置文件：
+2. 运行部署脚本：
 
+   Linux:
    ```bash
-   kubectl apply -f deployment.yaml
-   kubectl apply -f service.yaml
-   kubectl apply -f hpa.yaml
+   ./local/deploy.sh
    ```
 
-3. 如果您的集群中没有 metrics-server，请应用 components.yaml：
-
-   ```bash
-   kubectl apply -f components.yaml
+   Windows (PowerShell):
+   ```powershell
+   powershell -ExecutionPolicy Bypass -File .\local\deploy.ps1
    ```
 
-4. 检查部署状态：
+   这些脚本会自动应用必要的 Kubernetes 配置文件并检查部署状态。
 
-   ```bash
-   kubectl get deployments
-   kubectl get pods
-   kubectl get services
-   kubectl get hpa
-   ```
-
-5. 获取服务的外部 IP（如果使用 LoadBalancer 类型）：
+3. 获取服务的外部 IP（如果使用 LoadBalancer 类型）：
 
    ```bash
    kubectl get services zenapi-service
@@ -124,9 +110,9 @@ docker stop <container-id>
 
    注意：如果您使用的是 Minikube，可能需要运行 `minikube service zenapi-service` 来访问服务。
 
-6. 使用获取到的 IP 地址访问您的应用。
+4. 使用获取到的 IP 地址访问您的应用。
 
-7. 监控 HPA：
+5. 监控 HPA：
 
    ```bash
    kubectl get hpa zenapi-hpa --watch
@@ -134,15 +120,14 @@ docker stop <container-id>
 
    这将显示 HPA 的当前状态，并在发生变化时更新。
 
-8. 清理资源（当您想要删除部署时）：
+6. 清理资源（当您想要删除部署时）：
 
    ```bash
-   kubectl delete -f deployment.yaml
-   kubectl delete -f service.yaml
-   kubectl delete -f hpa.yaml
+   kubectl delete -f local/deployment.yaml
+   kubectl delete -f local/hpa.yaml
    ```
 
-注意：请确保您的 Kubernetes 集群有足够的资源来运行这些部署。根据您的具体环境，可能需要调整 deployment.yaml 和 hpa.yaml 中的资源请求和限制。
+注意：请确保您的本地 Kubernetes 集群有足够的资源来运行这些部署。根据您的具体环境，可能需要调整 deployment.yaml 和 hpa.yaml 中的资源请求和限制。
 
 ### 5. 部署到 Google Kubernetes Engine (GKE)
 
@@ -282,3 +267,29 @@ annotations:
 注意：确保将上述配置中的占位符（如 YOUR_PROJECT_ID、YOUR_CLUSTER_NAME、YOUR_CLUSTER_ZONE、YOUR_ZONE_NAME、YOUR_DOMAIN）替换为您的实际值。
 
 这个配置使用 Workload Identity 来安全地授权 External DNS 访问 Google Cloud DNS，无需使用服务账号密钥文件。通过这种方式，我们提高了安全性，并简化了凭证管理。
+
+### 切换 Kubernetes 集群
+
+在使用多个 Kubernetes 集群时，您可能需要在它们之间切换。以下是一些有用的命令：
+
+1. 查看当前的集群上下文：
+   ```bash
+   kubectl config current-context
+   ```
+
+2. 查看所有可用的集群上下文：
+   ```bash
+   kubectl config get-contexts
+   ```
+
+3. 切换到特定的集群上下文：
+   ```bash
+   kubectl config use-context <context-name>
+   ```
+
+4. 对于 GKE 集群，使用 gcloud 命令切换：
+   ```bash
+   gcloud container clusters get-credentials <cluster-name> --zone <zone> --project <project-id>
+   ```
+
+确保在执行部署或其他操作之前，您已经切换到了正确的集群上下文。

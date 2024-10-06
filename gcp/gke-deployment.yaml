@@ -27,8 +27,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: zenapi-gke-service
-  annotations:
-    external-dns.alpha.kubernetes.io/hostname: service.fisherman.top
+  # 移除 external-dns 注解
 spec:
   selector:
     app: zenapi-gke
@@ -36,4 +35,4 @@ spec:
     - protocol: TCP
       port: 80
       targetPort: 80
-  type: LoadBalancer
+  type: ClusterIP  # 将 LoadBalancer 改为 ClusterIP

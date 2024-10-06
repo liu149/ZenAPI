@@ -60,3 +60,6 @@ ipython_config.py
 
 # pyenv
 .python-version
+
+# Cursor rules
+.cursorrules
