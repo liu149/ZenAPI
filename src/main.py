@@ -9,6 +9,11 @@ def cpu_intensive_task(n: int):
     while time.time() - start < n:
         [math.sqrt(i) for i in range(10000)]
 
+# kubernetes backend service will call this endpoint to check if the service is running
+@app.get("/")
+async def root():
+    return {"status": "OK"}
+
 @app.get("/cpu-task/{seconds}")
 async def cpu_task(seconds: int):
     cpu_intensive_task(seconds)

@@ -31,7 +31,7 @@
 
 2. 运行应用：
    ```bash
-   uvicorn main:app --reload
+   uvicorn src.main:app --reload
    ```
 
 3. 访问 http://127.0.0.1:8000 查看应用
