@@ -14,6 +14,10 @@ def cpu_intensive_task(n: int):
 async def root():
     return {"status": "OK"}
 
+@app.get("/health")
+async def health():
+    return {"status": "OK"}
+
 @app.get("/cpu-task/{seconds}")
 async def cpu_task(seconds: int):
     cpu_intensive_task(seconds)
