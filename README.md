@@ -8,10 +8,11 @@
 
 1. 创建基本的 FastAPI 应用
 2. 使用 Docker 容器化应用
-3. 使用 Google Cloud Build 自动构建和部署
-4. 在 GKE 上运行和管理应用
-5. 配置 Cloud DNS 进行域名管理
+3. 将应用部署到本地 Kubernetes 集群
+4. 将应用部署到gke
+5. 使用 Google Cloud Build 自动构建和部署
 6. 使用 External DNS 自动管理 DNS 记录
+7. GKE上使用ingress
 
 ## 学习内容
 
@@ -145,40 +146,50 @@ docker stop <container-id>
    gcloud container clusters get-credentials my-gke --zone asia-east1
    ```
 
-4. 使用 Cloud Build 构建和部署应用。根据您的需求，可以选择以下两种方式之一：
+4. 设置 Cloud Build 触发器：
+   a. 在 Google Cloud Console 中，导航到 Cloud Build > 触发器。
+   b. 点击"创建触发器"。
+   c. 选择您的源代码仓库（例如 GitHub）。
+   d. 配置触发器：
+      - 名称：给触发器起一个描述性的名称（例如："Deploy to GKE"）
+      - 事件：选择"推送到分支"
+      - 源：选择您的仓库和分支（例如 main）
+      - 配置文件：选择"Cloud Build 配置文件"，并指定路径为 gcp/cloudbuild.yaml
+      - 替代变量：
+        _CLOUDSDK_COMPUTE_ZONE: asia-east1
+        _CLOUDSDK_CONTAINER_CLUSTER: my-gke
+        _BUILD_IMAGE: true
+        _ACTION: apply
+   e. 点击"创建"保存触发器。
 
-   a. 构建新镜像并部署：
-   ```bash
-   gcloud builds submit --config cloudbuild.yaml --substitutions=_BUILD_IMAGE=true,_IMAGE_TAG=v1.0.0
-   ```
+5. 触发部署：
+   - 手动触发：在 Cloud Build 触发器页面，找到您刚创建的触发器，点击"运行"。
+   - 自动触发：推送更改到您配置的 Git 分支。
 
-   b. 仅更新部署（使用现有镜像）：
-   ```bash
-   gcloud builds submit --config cloudbuild.yaml --substitutions=_BUILD_IMAGE=false,_IMAGE_TAG=v1.0.0
-   ```
+6. 监控部署：
+   - 在 Cloud Build > 历史记录中查看构建进度。
+   - 使用以下命令检查部署状态：
+     ```bash
+     kubectl get deployments
+     kubectl get pods
+     kubectl get services
+     ```
 
-   注意：请根据您的实际版本号更改 `v1.0.0`。
-
-5. 等待部署完成。您可以使用以下命令检查部署状态：
-   ```bash
-   kubectl get deployments
-   kubectl get pods
-   kubectl get services
-   ```
-
-6. 获取服务的外部 IP 地址：
+7. 获取服务的外部 IP 地址：
    ```bash
    kubectl get services zenapi-gke-service
    ```
 
-7. 使用获取到的外部 IP 地址访问您的应用。
+8. 使用获取到的外部 IP 地址访问您的应用。
 
-8. 如果需要更新应用，只需要重复步骤 4，根据需要选择是否构建新镜像。
+9. 如果需要更新应用，只需要推送更改到 Git 仓库，触发器将自动启动新的部署。
 
-9. 清理资源（当您想要删除部署时）：
-   ```bash
-   kubectl delete -f gke-deployment.yaml
-   ```
+10. 清理资源（当您想要删除部署时）：
+    - 手动触发构建，设置 _ACTION 为 delete
+    - 或者使用 kubectl：
+      ```bash
+      kubectl delete -f gcp/gke-deployment.yaml
+      ```
 
 注意：
 - 确保您的 GCP 项目有足够的配额来运行 GKE 集群和部署您的应用。
