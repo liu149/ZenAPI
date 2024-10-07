@@ -16,7 +16,7 @@ async def root():
 
 @app.get("/health")
 async def health():
-    return {"status": "OK"}
+    return {"status": "healthy"}
 
 @app.get("/cpu-task/{seconds}")
 async def cpu_task(seconds: int):
