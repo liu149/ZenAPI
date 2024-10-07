@@ -2,15 +2,14 @@ options:
   logging: CLOUD_LOGGING_ONLY
 
 steps:
-  # Install dependencies
+  # Install dependencies and run tests
   - name: 'python:3.10'
-    entrypoint: pip
-    args: ['install', '-r', 'requirements.txt']
-
-  # Run tests
-  - name: 'python:3.10'
-    entrypoint: python
-    args: ['-m', 'pytest', 'src']
+    entrypoint: bash
+    args:
+    - '-c'
+    - |
+      pip install -r requirements.txt
+      python -m pytest src
 
   # Conditional step: Build and push the Docker image (if tests pass)
   - name: 'gcr.io/cloud-builders/docker'
