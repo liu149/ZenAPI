@@ -17,11 +17,37 @@ spec:
         image: gcr.io/PROJECT_ID/zenapi-app:TAG  # This will be replaced by the sed command
         ports:
         - containerPort: 80
-        resources:
-          requests:
-            cpu: 100m
-          limits:
-            cpu: 500m
+        env:
+        - name: DB_USER
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: password
+        - name: DB_NAME
+          valueFrom:
+            secretKeyRef:
+              name: cloudsql-db-credentials
+              key: database
+        - name: DB_HOST
+          value: "127.0.0.1"
+        - name: DB_PORT
+          value: "5432"
+        - name: USE_CLOUD_SQL_PROXY
+          value: "true"
+        - name: INSTANCE_CONNECTION_NAME
+          value: "PROJECT_ID:REGION:INSTANCE_NAME"
+      - name: cloud-sql-proxy
+        image: gcr.io/cloudsql-docker/gce-proxy:1.33.1
+        command:
+          - "/cloud_sql_proxy"
+          - "-instances=PROJECT_ID:REGION:INSTANCE_NAME=tcp:5432"
+        securityContext:
+          runAsNonRoot: true
 ---
 apiVersion: v1
 kind: Service
