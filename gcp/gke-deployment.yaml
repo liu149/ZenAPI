@@ -12,6 +12,7 @@ spec:
       labels:
         app: zenapi-gke
     spec:
+      serviceAccountName: cloud-sql-proxy-sa  # 添加这一行
       containers:
       - name: zenapi
         image: gcr.io/PROJECT_ID/zenapi-app:TAG  # This will be replaced by the sed command
@@ -48,6 +49,14 @@ spec:
           - "-instances=PROJECT_ID:REGION:INSTANCE_NAME=tcp:5432"
         securityContext:
           runAsNonRoot: true
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cloud-sql-proxy-sa
+  namespace: default
+  annotations:
+    iam.gke.io/gcp-service-account: gke-cloudsql-sa@bamboo-zephyr-435715-f7.iam.gserviceaccount.com
 ---
 apiVersion: v1
 kind: Service
