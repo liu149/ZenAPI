@@ -1,0 +1,50 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/zenapi:${_VERSION}', '-f', 'gcp/cloudRun/Dockerfile', '.']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/zenapi:${_VERSION}']
+
+  # Deploy container image to Cloud Run
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+    - 'run'
+    - 'deploy'
+    - 'zenapi'
+    - '--image'
+    - 'gcr.io/$PROJECT_ID/zenapi:${_VERSION}'
+    - '--region'
+    - '${_REGION}'
+    - '--platform'
+    - 'managed'
+    - '--allow-unauthenticated'
+
+  # Set IAM policy to allow public access
+  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  #   entrypoint: gcloud
+  #   args:
+  #   - 'run'
+  #   - 'services'
+  #   - 'add-iam-policy-binding'
+  #   - 'zenapi'
+  #   - '--member=allUsers'
+  #   - '--role=roles/run.invoker'
+  #   - '--region=${_REGION}'
+  #   - '--platform=managed'
+
+images:
+  - 'gcr.io/$PROJECT_ID/zenapi:${_VERSION}'
+
+substitutions:
+  _REGION: asia-east1
+  _VERSION: latest
+
+options:
+  dynamic_substitutions: true
+  logging: CLOUD_LOGGING_ONLY  # 取消注释这行
+
+# 指定使用的服务账号
+serviceAccount: 'projects/$PROJECT_ID/serviceAccounts/cloudbuild-sa@$PROJECT_ID.iam.gserviceaccount.com'

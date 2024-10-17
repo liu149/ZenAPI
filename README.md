@@ -2,43 +2,42 @@
 
 这个项目的主要目的是通过使用 FastAPI 来熟悉 Google Cloud Platform (GCP)。在这里，我将记录学习过程、重要概念和实践经验。
 
-## 项目概述
+## 目录
+1. [创建基本的 FastAPI 应用](#1-创建基本的-fastapi-应用)
+2. [在 Docker 容器中运行应用](#2-在-docker-容器中运行应用)，
+4. [将应用部署到本地 Kubernetes 集群](#4-将应用部署到本地-kubernetes-集群)
+5. [将应用部署到 GKE](#5-将应用部署到-gke)
+6. [使用 Google Cloud Build 自动构建和部署](#6-使用-google-cloud-build-自动构建和部署)
+7. [使用 External DNS 自动管理 DNS 记录](#7-使用-external-dns-自动管理-dns-记录)
+8. [GKE 上使用 Ingress](#8-gke-上使用-ingress)
+9. [使用 Cloud Run 部署服务和作业](#9-使用-cloud-run-部署服务和作业)
 
-本项目使用 FastAPI 构建一个简单的 Web 应用，并将其部署到 Google Kubernetes Engine (GKE)。通过这个过程，我们将学习如何：
-
-1. 创建基本的 FastAPI 应用
-2. 使用 Docker 容器化应用
-3. 将应用部署到本地 Kubernetes 集群
-4. 将应用部署到gke
-5. 使用 Google Cloud Build 自动构建和部署
-6. 使用 External DNS 自动管理 DNS 记录
-7. GKE上使用ingress
-
-## 学习内容
 
 ### 1. 创建基本的 FastAPI 应用
 
 - 使用 FastAPI 创建了一个简单的 Web 应用
-- 学习了如何定义基本路由和处理请求
+- 安装依赖：
+  ```bash
+  pip install -r requirements.txt
+  ```
 
-### 2. 本地开发和测试
+- 运行项目：
+  ```bash
+  uvicorn src.main:app --reload
+  ```
 
-在本地开发和测试 FastAPI 应用：
+这将启动 FastAPI 应用，并在代码更改时自动重新加载。
 
-1. 安装依赖：
-   ```bash
-   pip install -r requirements.txt
-   ```
+- 创建了基本的路由，包括根路由 `/` 和健康检查路由 `/health`
+- 添加了数据库连接测试路由 `/db-test`
+- 实现了基本的单元测试
 
-2. 运行应用：
-   ```bash
-   uvicorn src.main:app --reload
-   ```
+访问应用和文档：
+- 应用主页：http://localhost:80
+- API 文档：http://localhost:80/docs
 
-3. 访问 http://127.0.0.1:8000 查看应用
-4. 访问 http://127.0.0.1:8000/docs 查看 API 文档
 
-### 3. Docker 操作
+### 2. 在 Docker 容器中运行应用
 
 #### 构建 Docker 镜像
 首先，确保您已经登录到 Docker Hub：
@@ -48,20 +47,18 @@ docker login
 ```
 
 要构建 Docker 镜像并推送到 Docker Hub，请在项目根目录下运行以下命令：
-windows环
-```powershell
-powershell -ExecutionPolicy Bypass -File .\local\build.ps1
-```
-linux环境
+# 构建 Docker 镜像
 ```bash
-./local/build.sh
+docker build -t ${DOCKER_USERNAME}/${IMAGE_NAME}:${TAG} -f Dockerfile .
+```
+
+# 推送镜像到 Docker Hub
+```bash
+docker push ${DOCKER_USERNAME}/${IMAGE_NAME}:${TAG}
 ```
 
 
-
-#### 在 Docker 容器中运行应用
-
-要在 Docker 容器中运行应用，请使用以下命令：
+# 运行Docker
 
 ```bash
 docker run -d -p 80:80 your-dockerhub-username/zenapi-app:latest
@@ -83,22 +80,14 @@ docker ps
 docker stop <container-id>
 ```
 
-### 4. 部署到本地 Kubernetes 集群
-
-要将应用部署到本地 Kubernetes 集群，请按照以下步骤操作：
+### 3. 部署到本地 Kubernetes 集群
 
 1. 确保您已经安装并配置了 kubectl，并且可以连接到您的本地 Kubernetes 集群（如 Minikube 或 Docker Desktop Kubernetes）。
 
 2. 运行部署脚本：
 
-   Linux:
    ```bash
-   ./local/deploy.sh
-   ```
-
-   Windows (PowerShell):
-   ```powershell
-   powershell -ExecutionPolicy Bypass -File .\local\deploy.ps1
+   kubectl apply -f local/kubernetes-config.yaml
    ```
 
    这些脚本会自动应用必要的 Kubernetes 配置文件并检查部署状态。
@@ -124,13 +113,12 @@ docker stop <container-id>
 6. 清理资源（当您想要删除部署时）：
 
    ```bash
-   kubectl delete -f local/deployment.yaml
-   kubectl delete -f local/hpa.yaml
+   kubectl delete -f local/kubenetes-config.yaml
    ```
 
 注意：请确保您的本地 Kubernetes 集群有足够的资源来运行这些部署。根据您的具体环境，可能需要调整 deployment.yaml 和 hpa.yaml 中的资源请求和限制。
 
-### 5. 部署到 Google Kubernetes Engine (GKE)
+### 4. 部署到 Google Kubernetes Engine (GKE)
 
 要将应用部署到 Google Kubernetes Engine (GKE)，请按照以下步骤操作：
 
@@ -304,3 +292,21 @@ annotations:
    ```
 
 确保在执行部署或其他操作之前，您已经切换到了正确的集群上下文。
+
+
+### 9. 使用 Cloud Run 部署服务和作业
+
+#### a. 创建服务账号
+
+创建一个名为 `cloudbuild-sa` 的服务账号，并确保它具有以下权限：
+
+- Artifact Registry Administrator
+- Cloud Run Admin
+- Logs Writer
+- Service Account User
+- Storage Admin
+
+#### b. 部署到 Cloud Run
+
+使用以下命令部署服务：gcloud builds submit --config=gcp/cloudRun/cloudbuild.yaml
+

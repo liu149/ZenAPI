@@ -1,0 +1,24 @@
+runtime: python310  # 或者您使用的Python版本
+entrypoint: uvicorn src.main:app --host 0.0.0.0 --port $PORT
+service: default    # 保持为默认服务
+instance_class: F1  # 使用最小的实例类型
+
+automatic_scaling:
+  max_instances: 1  # 限制最大实例数为 1
+  min_instances: 0  # 允许缩减到 0 实例
+  max_idle_instances: 1  # 最多保留 1 个空闲实例
+  min_pending_latency: 3000ms  # 增加延迟容忍度，减少扩展频率
+  max_concurrent_requests: 10  # 限制并发请求数
+
+inbound_services:
+- warmup  # 启用预热请求，有助于减少冷启动
+
+env_variables:
+  PYTHON_ENV: 'production'
+
+handlers:
+- url: /.*
+  script: auto
+  secure: always  # 强制 HTTPS，可能略微降低成本（减少 SSL 协商）
+
+# 注释掉或移除任何不必要的服务或 API
