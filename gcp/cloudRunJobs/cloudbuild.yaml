@@ -1,0 +1,94 @@
+steps:
+  # Build the container image
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['build', '-t', 'gcr.io/$PROJECT_ID/my-job:${_VERSION}', '-f', 'gcp/cloudRunJobs/Dockerfile', 'gcp/cloudRunJobs']
+
+  # Push the container image to Container Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args: ['push', 'gcr.io/$PROJECT_ID/my-job:${_VERSION}']
+
+  # Create or update the Cloud Run Job
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: gcloud
+    args:
+    - 'run'
+    - 'jobs'
+    - 'create'
+    - 'my-job'
+    - '--image'
+    - 'gcr.io/$PROJECT_ID/my-job:${_VERSION}'
+    - '--region'
+    - '${_REGION}'
+    - '--set-env-vars'
+    - 'VAR1=value1,VAR2=value2'
+    - '--max-retries'
+    - '3'
+    - '--task-timeout'
+    - '10m'
+
+  # Check if the Cloud Scheduler job exists
+  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  #   entrypoint: 'bash'
+  #   args:
+  #   - '-c'
+  #   - |
+  #     if gcloud scheduler jobs describe my-job-trigger --location=${_REGION} 2>/dev/null; then
+  #       echo "SCHEDULER_JOB_EXISTS=true" >> $BUILDER_OUTPUT/scheduler_job_status
+  #     else
+  #       echo "SCHEDULER_JOB_EXISTS=false" >> $BUILDER_OUTPUT/scheduler_job_status
+  #     fi
+
+  # # Update the existing Cloud Scheduler job
+  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  #   entrypoint: gcloud
+  #   args:
+  #   - 'scheduler'
+  #   - 'jobs'
+  #   - 'update'
+  #   - 'http'
+  #   - 'my-job-trigger'
+  #   - '--schedule=0 2 * * *'
+  #   - '--uri=https://${_REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/my-job:run'
+  #   - '--http-method=POST'
+  #   - '--oauth-service-account-email=${_SERVICE_ACCOUNT}'
+  #   - '--location=${_REGION}'
+  #   - '--project=$PROJECT_ID'
+  #   - '--message-body={"message":"Triggered by Cloud Scheduler"}'
+  #   - '--attempt-deadline=10m'
+  #   - '--time-zone=Asia/Shanghai'
+  #   waitFor: ['Check if the Cloud Scheduler job exists']
+  #   id: 'Update Scheduler Job'
+
+  # # Create a new Cloud Scheduler job if it doesn't exist
+  # - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+  #   entrypoint: gcloud
+  #   args:
+  #   - 'scheduler'
+  #   - 'jobs'
+  #   - 'create'
+  #   - 'http'
+  #   - 'my-job-trigger'
+  #   - '--schedule=0 2 * * *'
+  #   - '--uri=https://${_REGION}-run.googleapis.com/apis/run.googleapis.com/v1/namespaces/$PROJECT_ID/jobs/my-job:run'
+  #   - '--http-method=POST'
+  #   - '--oauth-service-account-email=${_SERVICE_ACCOUNT}'
+  #   - '--location=${_REGION}'
+  #   - '--project=$PROJECT_ID'
+  #   - '--message-body={"message":"Triggered by Cloud Scheduler"}'
+  #   - '--attempt-deadline=10m'
+  #   - '--time-zone=Asia/Shanghai'
+  #   waitFor: ['Check if the Cloud Scheduler job exists']
+  #   id: 'Create Scheduler Job'
+
+images:
+  - 'gcr.io/$PROJECT_ID/my-job:${_VERSION}'
+
+substitutions:
+  _REGION: asia-east1
+  _VERSION: latest
+
+options:
+  dynamic_substitutions: true
+  logging: CLOUD_LOGGING_ONLY
+
+serviceAccount: 'projects/$PROJECT_ID/serviceAccounts/cloudbuild-sa@$PROJECT_ID.iam.gserviceaccount.com'
